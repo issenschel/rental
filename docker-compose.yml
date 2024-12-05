@@ -1,0 +1,33 @@
+services:
+  mysql:
+    image: issenschel/mysql-rental
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: rental
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "/usr/bin/mysql", "--user=root",  "--password=root", "--execute", "SHOW DATABASES;"]
+
+  app:
+    depends_on:
+      check-db-started:
+        condition: service_completed_successfully
+    image: issenschel/spring-rental
+    ports:
+      - "5174:5174"
+    restart: on-failure
+    stdin_open: true
+    tty: true
+
+  check-db-started:
+    image: jwilder/dockerize:0.6.1
+    depends_on:
+      - mysql
+    command: 'dockerize -wait=tcp://mysql:3306 -timeout 300s'
+
+volumes:
+  mysql_data:
